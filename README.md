@@ -1,27 +1,27 @@
-# baggins
+# bolson
 
 Utils to calculate sales values
 
 ## Install
 
 ```bash
-$ go get github.com/profe-ajedrez/baggins
+$ go get github.com/profe-ajedrez/bolson
 ```
 
 ## Usage
 
-Baggins is the handler provided to perform the sales operations over sales values
+bolson is the handler provided to perform the sales operations over sales values
 
-Internally Baggins has a handler for taxes and a handler for discounts which
+Internally bolson has a handler for taxes and a handler for discounts which
 performs operations and calculations over these concepts.
 
-Baggins can register different types of taxes and discounts and is able to
+bolson can register different types of taxes and discounts and is able to
 calculate them correctly.
 
 
 ### Taxes
 
-Baggins uses the concept of stages to the taxes registry and calculations,
+bolson uses the concept of stages to the taxes registry and calculations,
 where  a tax can be registered in a particular stage which determines when is calculated.
 
 #### The taxes stages are:
@@ -33,7 +33,7 @@ where  a tax can be registered in a particular stage which determines when is ca
   * OverTaxesIgnorableStage represents taxes which are calculated like the taxes of the OverTaxableStage, but are not included in the OVerTaxesStage
 
 ```go
-b := baggins.New()
+b := bolson.New()
 
 // adds a percentual tax to the Overtaxable stage
 err  := b.AddTax(decimal.NewFromInt(10), tax.PercentualMode, tax.OverTaxableStage)
@@ -45,11 +45,11 @@ if err != nil {
 
 ### Discounts 
 
-You can register discounts in baggins.
+You can register discounts in bolson.
 
 ```go
 
-b := baggins.New()
+b := bolson.New()
 
 // register a percentual discount
 err := b.AddDiscount(decimal.NewFromInt(10), discount.PercentualMode)
@@ -65,7 +65,7 @@ if err != nil {
 When you are done registering taxes an discount you can invoke the method `Calculate`.
 
 ```go
-b := baggins.New()
+b := bolson.New()
 
 // adds a percentual tax to the Overtaxable stage
 err  := b.AddTax(decimal.NewFromInt(10), tax.PercentualMode, tax.OverTaxableStage)

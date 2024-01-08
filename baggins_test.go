@@ -1,11 +1,11 @@
-package baggins
+package bolson
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/profe-ajedrez/baggins/discount"
-	"github.com/profe-ajedrez/baggins/tax"
+	"github.com/profe-ajedrez/bolson/discount"
+	"github.com/profe-ajedrez/bolson/tax"
 	"github.com/shopspring/decimal"
 )
 
@@ -13,15 +13,15 @@ func TestNew(t *testing.T) {
 	_ = New()
 }
 
-func TestBaggins(t *testing.T) {
+func TestBolson(t *testing.T) {
 	b := New()
 
 	for _, taxCase := range taxCases {
-		b.AddTax(taxCase.value, taxCase.mode, taxCase.stage)
+		_ = b.AddTax(taxCase.value, taxCase.mode, taxCase.stage)
 	}
 
 	for _, discCase := range discCases {
-		b.AddDiscount(discCase.value, discCase.mode)
+		_ = b.AddDiscount(discCase.value, discCase.mode)
 	}
 
 	unitValue, _ := decimal.NewFromString("100.0")
@@ -45,7 +45,7 @@ func TestBaggins(t *testing.T) {
 	}
 }
 
-// func TestBaggins2(t *testing.T) {
+// func Testbolson2(t *testing.T) {
 // 	b := New()
 
 // 	b.AddTax(decimal.NewFromInt(10), tax.PercentualMode, tax.OverTaxable)
@@ -67,15 +67,15 @@ func TestBaggins(t *testing.T) {
 // 	fmt.Println(string(js))
 // }
 
-func BenchmarkBaggins(b *testing.B) {
+func BenchmarkBolson(b *testing.B) {
 	bg := New()
 
 	for _, taxCase := range taxCases {
-		bg.AddTax(taxCase.value, taxCase.mode, taxCase.stage)
+		_ = bg.AddTax(taxCase.value, taxCase.mode, taxCase.stage)
 	}
 
 	for _, discCase := range discCases {
-		bg.AddDiscount(discCase.value, discCase.mode)
+		_ = bg.AddDiscount(discCase.value, discCase.mode)
 	}
 
 	unitValue, _ := decimal.NewFromString("100.0")

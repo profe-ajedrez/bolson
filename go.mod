@@ -1,4 +1,4 @@
-module github.com/profe-ajedrez/baggins
+module github.com/profe-ajedrez/bolson
 
 go 1.21.5
 

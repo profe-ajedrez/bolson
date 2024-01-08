@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/profe-ajedrez/baggins/numbers"
+	"github.com/profe-ajedrez/bolson/numbers"
 	"github.com/shopspring/decimal"
 )
 

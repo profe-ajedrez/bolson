@@ -1,14 +1,14 @@
-// Package baggins exposes utils to calculate sales values.
+// Package bolson exposes utils to calculate sales values.
 //
 // shopspring/decimal is used as backend
-package baggins
+package bolson
 
 import (
 	"fmt"
 
-	"github.com/profe-ajedrez/baggins/discount"
-	"github.com/profe-ajedrez/baggins/numbers"
-	"github.com/profe-ajedrez/baggins/tax"
+	"github.com/profe-ajedrez/bolson/discount"
+	"github.com/profe-ajedrez/bolson/numbers"
+	"github.com/profe-ajedrez/bolson/tax"
 	"github.com/shopspring/decimal"
 )
 
@@ -20,16 +20,16 @@ type WithDiscountValues struct {
 	// Brute is the operation subtotal values with taxes
 	Brute decimal.Decimal `json:"brute"`
 
-	// Tax is the operation value of the cummulated taxes registered by [Baggins]
+	// Tax is the operation value of the cummulated taxes registered by [bolson]
 	Tax decimal.Decimal `json:"tax"`
 
 	// Discount is the cummulated discount percentage
 	Discount decimal.Decimal `json:"discount"`
 
-	// DiscountValue is the value of the cummulated discounts registered by [Baggins] without taxes
+	// DiscountValue is the value of the cummulated discounts registered by [bolson] without taxes
 	DiscountedValue decimal.Decimal `json:"discountedValue"`
 
-	// DiscountedValueBrute is the value of the cummulated discounts registered by [Baggins] with taxes
+	// DiscountedValueBrute is the value of the cummulated discounts registered by [bolson] with taxes
 	DiscountedValueBrute decimal.Decimal `json:"discountedValueBrute"`
 
 	// UnitValue is the raw unit value recalculated from the subtotals
@@ -57,7 +57,7 @@ type WithoutDiscountValues struct {
 	// Brute is the operation subtotal values with taxes. This time without discount applied
 	Brute decimal.Decimal `json:"brute"`
 
-	// Tax is the operation value of the cummulated taxes registered by [Baggins]. This time without discount applied
+	// Tax is the operation value of the cummulated taxes registered by [bolson]. This time without discount applied
 	Tax decimal.Decimal `json:"tax"`
 
 	// UnitValue is the raw unit value recalculated from the subtotals. This time without discount applied
@@ -89,15 +89,15 @@ func (b Bag) String() string {
 }`, b.WithDiscount.String(), b.WithoutDiscount.String())
 }
 
-// Baggins is the handler provided to perform the sales operations over sales values
+// bolson is the handler provided to perform the sales operations over sales values
 //
-// Internally Baggins has a handler for taxes and a handler for discounts which
+// Internally bolson has a handler for taxes and a handler for discounts which
 // performs operations and calculations over these concepts.
 //
-// Baggins can register different types of taxes and discount and is able to
+// bolson can register different types of taxes and discount and is able to
 // calculate them correctly.
 //
-// Baggins uses the concept of stages to the taxes registry and calculations,
+// bolson uses the concept of stages to the taxes registry and calculations,
 // where  a tax can be registered in a particular stage which determines when is calculated.
 //
 // The taxes stages are:
@@ -108,7 +108,7 @@ func (b Bag) String() string {
 //
 // * OverTaxesIgnorableStage represents taxes which are calculated like the taxes of the OverTaxableStage, but are not included in the OVerTaxesStage
 //
-//	 b := baggins.New()
+//	 b := bolson.New()
 //
 //	 // adds a percentual tax to the Overtaxable stage
 //	 err  := b.AddTax(decimal.NewFromInt(10), tax.PercentualMode, tax.OverTaxableStage)
@@ -116,27 +116,27 @@ func (b Bag) String() string {
 //	 if err != nil {
 //		    panic(err) // Remember! Dont Panic!
 //	 }
-type Baggins struct {
+type bolson struct {
 	taxHandler      *tax.Handler
 	discountHandler *discount.ComputedDiscount
 }
 
-func New() Baggins {
-	return Baggins{
+func New() bolson {
+	return bolson{
 		taxHandler:      tax.NewHandler(),
 		discountHandler: discount.NewComputedDiscount(),
 	}
 }
 
-func (b Baggins) AddTax(value decimal.Decimal, mode tax.Mode, stage tax.Stage) error {
+func (b bolson) AddTax(value decimal.Decimal, mode tax.Mode, stage tax.Stage) error {
 	return b.taxHandler.AddTax(value, mode, stage)
 }
 
-func (b Baggins) AddDiscount(value decimal.Decimal, mode discount.Mode) error {
+func (b bolson) AddDiscount(value decimal.Decimal, mode discount.Mode) error {
 	return b.discountHandler.AddDiscount(value, mode)
 }
 
-func (b Baggins) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+func (b bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
 	discounted, discount, err := b.discountHandler.Compute(unitValue, qty, maxDiscount)
 
 	if err != nil {
@@ -169,7 +169,7 @@ func (b Baggins) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDi
 	return
 }
 
-func (b Baggins) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+func (b bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
 	unit_value_wd, err := b.taxHandler.Untax(brute, qty)
 
 	if err != nil {
