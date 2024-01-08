@@ -136,6 +136,18 @@ func (b bolson) AddDiscount(value decimal.Decimal, mode discount.Mode) error {
 	return b.discountHandler.AddDiscount(value, mode)
 }
 
+func (b bolson) Untax(taxed decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
+	return b.taxHandler.Untax(taxed, qty)
+}
+
+func (b bolson) Tax(taxable decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
+	return b.taxHandler.Tax(taxable, qty)
+}
+
+func (b bolson) Discount(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (decimal.Decimal, decimal.Decimal, error) {
+	return b.discountHandler.Compute(unitValue, qty, maxDiscount)
+}
+
 func (b bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
 	discounted, discount, err := b.discountHandler.Compute(unitValue, qty, maxDiscount)
 
