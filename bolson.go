@@ -48,6 +48,18 @@ func (c WithDiscountValues) String() string {
 	}`, c.Net, c.Brute, c.Tax, c.Discount, c.DiscountedValue, c.DiscountedValueBrute, c.UnitValue)
 }
 
+func (c WithDiscountValues) Round(scale int32) WithDiscountValues {
+	return WithDiscountValues{
+		Net:                  c.Net.Round(scale),
+		Brute:                c.Brute.Round(scale),
+		Tax:                  c.Tax.Round(scale),
+		Discount:             c.Discount.Round(scale),
+		DiscountedValue:      c.DiscountedValue.Round(scale),
+		DiscountedValueBrute: c.DiscountedValueBrute.Round(scale),
+		UnitValue:            c.UnitValue.Round(scale),
+	}
+}
+
 // WithoutDiscountValues represents the result of operations over sales values without applied discounts
 // as if no discounts were registered.
 type WithoutDiscountValues struct {
@@ -73,6 +85,15 @@ func (c WithoutDiscountValues) String() string {
 	}`, c.Net, c.Brute, c.Tax, c.UnitValue)
 }
 
+func (c WithoutDiscountValues) Round(scale int32) WithoutDiscountValues {
+	return WithoutDiscountValues{
+		Net:       c.Net.Round(scale),
+		Brute:     c.Brute.Round(scale),
+		Tax:       c.Tax.Round(scale),
+		UnitValue: c.UnitValue.Round(scale),
+	}
+}
+
 // Bag is used to contain the result of calculations
 type Bag struct {
 	// WithDiscount contains the obtained values with discount
@@ -87,6 +108,13 @@ func (b Bag) String() string {
     	"withDiscount" %v,
 	"withoutDiscount": %v
 }`, b.WithDiscount.String(), b.WithoutDiscount.String())
+}
+
+func (b Bag) Round(scale int32) Bag {
+	return Bag{
+		WithDiscount:    b.WithDiscount.Round(scale),
+		WithoutDiscount: b.WithoutDiscount.Round(scale),
+	}
 }
 
 // bolson is the handler provided to perform the sales operations over sales values
