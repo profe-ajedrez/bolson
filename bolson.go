@@ -156,6 +156,18 @@ func New() bolson {
 	}
 }
 
+func (b bolson) OverTaxables() *tax.TaxStage {
+	return b.taxHandler.OverTaxables
+}
+
+func (b bolson) OverTaxes() *tax.TaxStage {
+	return b.taxHandler.OverTaxes
+}
+
+func (b bolson) OverTaxIgnorables() *tax.TaxStage {
+	return b.taxHandler.OverTaxIgnorables
+}
+
 func (b bolson) AddTax(value decimal.Decimal, mode tax.Mode, stage tax.Stage) error {
 	return b.taxHandler.AddTax(value, mode, stage)
 }

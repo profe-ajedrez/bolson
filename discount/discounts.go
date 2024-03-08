@@ -251,12 +251,12 @@ func (cd *ComputedDiscount) UnDiscount(discounted decimal.Decimal, qty decimal.D
 			)
 	}
 
-	original = original.Div(
+	original = original.Mul(
 		numbers.Hundred.Sub(
-			cd.percentual).Mul(
+			cd.percentual).Div(
 			numbers.Hundred,
 		),
-	).Mul(qty)
+	)
 
 	return original, nil
 }
