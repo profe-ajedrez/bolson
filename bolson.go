@@ -117,15 +117,15 @@ func (b Bag) Round(scale int32) Bag {
 	}
 }
 
-// bolson is the handler provided to perform the sales operations over sales values
+// Bolson is the handler provided to perform the sales operations over sales values
 //
-// Internally bolson has a handler for taxes and a handler for discounts which
+// Internally Bolson has a handler for taxes and a handler for discounts which
 // performs operations and calculations over these concepts.
 //
-// bolson can register different types of taxes and discount and is able to
+// Bolson can register different types of taxes and discount and is able to
 // calculate them correctly.
 //
-// bolson uses the concept of stages to the taxes registry and calculations,
+// Bolson uses the concept of stages to the taxes registry and calculations,
 // where  a tax can be registered in a particular stage which determines when is calculated.
 //
 // The taxes stages are:
@@ -136,7 +136,7 @@ func (b Bag) Round(scale int32) Bag {
 //
 // * OverTaxesIgnorableStage represents taxes which are calculated like the taxes of the OverTaxableStage, but are not included in the OVerTaxesStage
 //
-//	 b := bolson.New()
+//	 b := Bolson.New()
 //
 //	 // adds a percentual tax to the Overtaxable stage
 //	 err  := b.AddTax(decimal.NewFromInt(10), tax.PercentualMode, tax.OverTaxableStage)
@@ -144,51 +144,51 @@ func (b Bag) Round(scale int32) Bag {
 //	 if err != nil {
 //		    panic(err) // Remember! Dont Panic!
 //	 }
-type bolson struct {
+type Bolson struct {
 	taxHandler      *tax.Handler
 	discountHandler *discount.ComputedDiscount
 }
 
-func New() bolson {
-	return bolson{
+func New() Bolson {
+	return Bolson{
 		taxHandler:      tax.NewHandler(),
 		discountHandler: discount.NewComputedDiscount(),
 	}
 }
 
-func (b bolson) OverTaxables() *tax.TaxStage {
+func (b Bolson) OverTaxables() *tax.TaxStage {
 	return b.taxHandler.OverTaxables
 }
 
-func (b bolson) OverTaxes() *tax.TaxStage {
+func (b Bolson) OverTaxes() *tax.TaxStage {
 	return b.taxHandler.OverTaxes
 }
 
-func (b bolson) OverTaxIgnorables() *tax.TaxStage {
+func (b Bolson) OverTaxIgnorables() *tax.TaxStage {
 	return b.taxHandler.OverTaxIgnorables
 }
 
-func (b bolson) AddTax(value decimal.Decimal, mode tax.Mode, stage tax.Stage) error {
+func (b Bolson) AddTax(value decimal.Decimal, mode tax.Mode, stage tax.Stage) error {
 	return b.taxHandler.AddTax(value, mode, stage)
 }
 
-func (b bolson) AddDiscount(value decimal.Decimal, mode discount.Mode) error {
+func (b Bolson) AddDiscount(value decimal.Decimal, mode discount.Mode) error {
 	return b.discountHandler.AddDiscount(value, mode)
 }
 
-func (b bolson) Untax(taxed decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
+func (b Bolson) Untax(taxed decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
 	return b.taxHandler.Untax(taxed, qty)
 }
 
-func (b bolson) Tax(taxable decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
+func (b Bolson) Tax(taxable decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
 	return b.taxHandler.Tax(taxable, qty)
 }
 
-func (b bolson) Discount(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (decimal.Decimal, decimal.Decimal, error) {
+func (b Bolson) Discount(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (decimal.Decimal, decimal.Decimal, error) {
 	return b.discountHandler.Compute(unitValue, qty, maxDiscount)
 }
 
-func (b bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+func (b Bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
 	discounted, discount, err := b.discountHandler.Compute(unitValue, qty, maxDiscount)
 
 	if err != nil {
@@ -221,7 +221,7 @@ func (b bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDis
 	return
 }
 
-func (b bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+func (b Bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
 	unit_value_wd, err := b.taxHandler.Untax(brute, qty)
 
 	if err != nil {
