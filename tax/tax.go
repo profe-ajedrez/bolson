@@ -196,6 +196,7 @@ type Storer interface {
 
 type Untaxer interface {
 	Untax(decimal.Decimal, decimal.Decimal) decimal.Decimal
+	Taxable() decimal.Decimal
 }
 
 var _ Stager = &TaxStage{}
@@ -371,6 +372,10 @@ func (ts *TaxStage) AmountUnit() decimal.Decimal {
 // Percent implements Storer.
 func (ts *TaxStage) Percent() decimal.Decimal {
 	return ts.percentuals.Copy()
+}
+
+func (ts *TaxStage) Taxable() decimal.Decimal {
+	return ts.taxable.Copy()
 }
 
 type Handler struct {
