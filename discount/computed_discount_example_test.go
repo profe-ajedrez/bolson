@@ -72,7 +72,7 @@ func ExampleComputedDiscount() {
 		panic(fmt.Sprintf("could'nt calculate correct discount value. Expected %v, got %v", expected, result))
 	}
 
-	fmt.Printf("Success!! expected: %v -- got: %v", expected, result)
+	//fmt.Printf("Success!! expected: %v -- got: %v", expected, result)
 
 	// Output:
 	// Success!! expected: 268.3 -- got: 268.3

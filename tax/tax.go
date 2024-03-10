@@ -195,7 +195,7 @@ type Storer interface {
 }
 
 type Untaxer interface {
-	Untax() decimal.Decimal
+	Untax(decimal.Decimal, decimal.Decimal) decimal.Decimal
 }
 
 var _ Stager = &TaxStage{}
@@ -354,8 +354,8 @@ func (ts *TaxStage) TaxFromString(taxable string, qty string) (decimal.Decimal, 
 }
 
 // Untax implements Untaxer.
-func (ts *TaxStage) Untax() decimal.Decimal {
-	return ts.taxable
+func (ts *TaxStage) Untax(taxed decimal.Decimal, qty decimal.Decimal) decimal.Decimal {
+	return taxed.Sub(ts.AmountLine()).Sub(ts.AmountUnit().Mul(qty)).Div(numbers.One.Add(ts.Percent().Div(numbers.Hundred)))
 }
 
 // AmountLine implements Storer.
@@ -643,27 +643,11 @@ func (h *Handler) Untax(brute decimal.Decimal, q decimal.Decimal) (decimal.Decim
 		return numbers.Zero.Copy(), ErrNegativeQty(fmt.Sprintf("untaxing %v with qty %v", brute, q))
 	}
 
-	// new_total – (b*d+b+e+h)-c*(d+1)-f-i
-	// -----------------------------------
-	//     (a * d + a + g) + d + 1
-
-	a := h.OverTaxables.percentuals.Div(numbers.Hundred)
-	b := h.OverTaxables.amountUnit.Mul(q)
-	c := h.OverTaxables.amountLine
-	d := h.OverTaxes.percentuals.Div(numbers.Hundred)
-	e := h.OverTaxes.amountUnit.Mul(q)
-	f := h.OverTaxes.amountLine
-	g := h.OverTaxIgnorables.percentuals.Div(numbers.Hundred)
-	h1 := h.OverTaxIgnorables.amountUnit.Mul(q)
-	i := h.OverTaxIgnorables.amountLine
-
-	n1 := (b.Mul(d).Add(b).Add(e).Add(h1))
-
-	nm := brute.Sub(n1).Sub(c.Mul(d.Add(numbers.One))).Sub(f).Sub(i)
-	dn := a.Mul(d).Add(a.Add(g))
-	dn = dn.Add(d).Add(numbers.One)
-
-	return nm.Div(dn).Div(q), nil
+	u1 := h.OverTaxIgnorables.Untax(brute, q)
+	//fmt.Printf("u1: %s", u1)
+	u2 := h.OverTaxes.Untax(u1, q)
+	//fmt.Printf("u2: %s", u2)
+	return h.OverTaxables.Untax(u2, q), nil
 }
 
 func (h *Handler) LineTax(taxable decimal.Decimal, qty decimal.Decimal, value decimal.Decimal, mode Mode) (decimal.Decimal, error) {

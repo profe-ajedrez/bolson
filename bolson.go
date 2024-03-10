@@ -217,24 +217,32 @@ func (b Bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDis
 	}
 
 	calc.WithDiscount.UnitValue = calc.WithDiscount.Net.Div(qty)
+	calc.WithoutDiscount.UnitValue = calc.WithoutDiscount.Net.Div(qty)
 
 	return
 }
 
 func (b Bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
-	unit_value_wd, err := b.taxHandler.Untax(brute, qty)
+
+	//fmt.Printf("brute: %s\n", brute)
+
+	undiscounted, err := b.discountHandler.UnDiscount(brute, qty)
 
 	if err != nil {
 		return
 	}
 
-	unit_value, err := b.discountHandler.UnDiscount(unit_value_wd, qty)
+	//fmt.Printf("undiscounted: %s\n", undiscounted)
+
+	untaxedUnitary, err := b.taxHandler.Untax(undiscounted, qty)
 
 	if err != nil {
 		return
 	}
 
-	calc, err = b.Calculate(unit_value, qty, maxDiscount)
+	//fmt.Printf("sub: %s\n", sub)
+
+	calc, err = b.Calculate(untaxedUnitary, qty, numbers.Hundred)
 
 	return
 }
