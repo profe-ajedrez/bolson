@@ -105,6 +105,9 @@ const (
 	OverTaxIgnorable = Stage(2)
 
 	InvalidStage = Stage(99)
+
+	FromUv    = 0
+	FromBrute = 1
 )
 
 func NewStageFromInt(st int) (Stage, error) {
@@ -186,6 +189,8 @@ type Stager interface {
 	AddAmountLineFromString(string) error
 
 	TaxFromString(string, string) (decimal.Decimal, error)
+
+	Reset()
 }
 
 type Storer interface {
@@ -194,6 +199,7 @@ type Storer interface {
 	AmountLine() decimal.Decimal
 }
 
+// Untaxer is a thing able to remove taxes from a value
 type Untaxer interface {
 	Untax(decimal.Decimal, decimal.Decimal) decimal.Decimal
 	Taxable() decimal.Decimal
@@ -208,6 +214,7 @@ type TaxStage struct {
 	amountUnit  decimal.Decimal
 	amountLine  decimal.Decimal
 	taxable     decimal.Decimal
+	flow        int8
 }
 
 func NewTaxStage() *TaxStage {
@@ -216,7 +223,20 @@ func NewTaxStage() *TaxStage {
 		amountUnit:  numbers.Zero.Copy(),
 		amountLine:  numbers.Zero.Copy(),
 		taxable:     numbers.Zero.Copy(),
+		flow:        FromUv,
 	}
+}
+
+func (ts *TaxStage) SetTaxable(v decimal.Decimal) decimal.Decimal {
+	v, ts.taxable = ts.taxable, v
+	return v
+}
+
+func (ts *TaxStage) Reset() {
+	ts.amountLine = numbers.Zero.Copy()
+	ts.amountUnit = numbers.Zero.Copy()
+	ts.percentuals = numbers.Zero.Copy()
+	ts.taxable = numbers.Zero.Copy()
 }
 
 // AddAmountLine adds a new decimal value as tax to the tax registry
@@ -322,7 +342,7 @@ func (ts *TaxStage) Tax(taxable decimal.Decimal, qty decimal.Decimal) (decimal.D
 		return numbers.Zero.Copy(), ErrNegativeTaxable(qty)
 	}
 
-	ts.taxable = taxable.Copy()
+	ts.taxable = taxable.Mul(qty)
 
 	return (taxable.Mul(ts.percentuals.Div(numbers.Hundred)).Add(ts.amountUnit)).Mul(qty).Add(ts.amountLine), nil
 }
@@ -390,6 +410,12 @@ func NewHandler() *Handler {
 		OverTaxes:         NewTaxStage(),
 		OverTaxIgnorables: NewTaxStage(),
 	}
+}
+
+func (h *Handler) Reset() {
+	h.OverTaxables.Reset()
+	h.OverTaxes.Reset()
+	h.OverTaxIgnorables.Reset()
 }
 
 func (h *Handler) AddTax(value decimal.Decimal, mode Mode, stage Stage) error {
@@ -642,7 +668,7 @@ func (h *Handler) TaxFromString(taxable string, qty string) (decimal.Decimal, er
 	return overTaxables.Add(overTaxes).Add(overTaxIgnorable), nil
 }
 
-func (h *Handler) Untax(brute decimal.Decimal, q decimal.Decimal) (decimal.Decimal, error) {
+func (h *Handler) Untax(brute decimal.Decimal, q decimal.Decimal, flow int8) (decimal.Decimal, error) {
 
 	if q.LessThanOrEqual(numbers.Zero) {
 		return numbers.Zero.Copy(), ErrNegativeQty(fmt.Sprintf("untaxing %v with qty %v", brute, q))
@@ -652,7 +678,16 @@ func (h *Handler) Untax(brute decimal.Decimal, q decimal.Decimal) (decimal.Decim
 	//fmt.Printf("u1: %s", u1)
 	u2 := h.OverTaxes.Untax(u1, q)
 	//fmt.Printf("u2: %s", u2)
-	return h.OverTaxables.Untax(u2, q), nil
+	u3 := h.OverTaxables.Untax(u2, q)
+	//fmt.Printf("u1: %s", u3)
+
+	if flow == FromBrute {
+		h.OverTaxables.SetTaxable(u3.Div(q))
+		h.OverTaxes.SetTaxable(u2.Div(q))
+		h.OverTaxIgnorables.SetTaxable(u1.Div(q))
+	}
+
+	return u3, nil
 }
 
 func (h *Handler) LineTax(taxable decimal.Decimal, qty decimal.Decimal, value decimal.Decimal, mode Mode) (decimal.Decimal, error) {

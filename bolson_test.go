@@ -39,14 +39,16 @@ func TestBolson(t *testing.T) {
 
 func BenchmarkBolson(b *testing.B) {
 
+	bl := New()
 	b.ResetTimer()
 	for i, tc := range testBolsonCases {
 		b.Run(fmt.Sprintf("case %d/%d", i, len(testBolsonCases)), func(b2 *testing.B) {
 
 			for k := 0; k <= b2.N; k++ {
-				bl := New()
 				_, _ = tc.testCase(&bl)
-
+				b.StopTimer()
+				bl.Reset()
+				b.StartTimer()
 			}
 		})
 	}
@@ -57,6 +59,40 @@ var testBolsonCases = []struct {
 	testCase func(b *Bolson) (Bag, error)
 	expected string
 }{
+	{
+		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("10", tax.PercentualMode, tax.OverTaxable)
+			//_ = b.discountHandler.AddDiscountFromString("10", discount.Percentual)
+
+			qty, _ := decimal.NewFromString("10")
+			maxDiscount, _ := decimal.NewFromString("100")
+			brute, _ := decimal.NewFromString("1100")
+
+			calc, err := b.CalculateFromBrute(brute, qty, maxDiscount)
+
+			if err != nil {
+				return calc, err
+			}
+
+			return calc, err
+		},
+		expected: `{"withDiscount":{"net":"637.9310344827586222","brute":"740.000000000000001756274132676085568","tax":"102.068965517241379556274132676085568","discount":"30.1885553573578","discountedValue":"275.8604473412657312","discountedValueBrute":"319.998118915868248187725867323914432","unitValue":"637.9310344827586222"},"withoutDiscount":{"net":"913.7914818240243534","brute":"1059.998118915868249944","tax":"146.206637091843896544","unitValue":"913.7914818240243534"}}`,
+	},
+	{
+		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("20", tax.PercentualMode, tax.OverTaxable)
+			_ = b.discountHandler.AddDiscountFromString("10", discount.Percentual)
+
+			qty, _ := decimal.NewFromString("10.0")
+			maxDiscount, _ := decimal.NewFromString("100")
+			unitValue, _ := decimal.NewFromString("100")
+
+			calc, err := b.Calculate(unitValue, qty, maxDiscount)
+
+			return calc, err
+		},
+		expected: `{"withDiscount":{"net":"900","brute":"1080","tax":"180","discount":"10","discountedValue":"100","discountedValueBrute":"120","unitValue":"90"},"withoutDiscount":{"net":"1000","brute":"1200","tax":"200","unitValue":"100"}}`,
+	},
 	{
 		testCase: func(b *Bolson) (Bag, error) {
 			_ = b.taxHandler.AddTaxFromString("16", tax.PercentualMode, tax.OverTaxable)

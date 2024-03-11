@@ -153,7 +153,7 @@ func TestTaxHandler(t *testing.T) {
 	originalTaxable, err := h.Untax(func() decimal.Decimal {
 		d, _ := decimal.NewFromString("1289.31")
 		return d
-	}(), qty)
+	}(), qty, FromUv)
 
 	if err != nil {
 		t.Log(err)

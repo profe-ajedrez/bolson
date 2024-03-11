@@ -97,6 +97,8 @@ type DiscountComputer interface {
 	UnDiscountFromString(string, string) (decimal.Decimal, error)
 
 	Ratio(decimal.Decimal, decimal.Decimal) decimal.Decimal
+
+	Reset()
 }
 
 var _ DiscountComputer = &ComputedDiscount{}
@@ -115,6 +117,12 @@ func NewComputedDiscount() *ComputedDiscount {
 		amountLine: decimal.Zero.Copy(),
 		amountUnit: decimal.Zero.Copy(),
 	}
+}
+
+func (cd *ComputedDiscount) Reset() {
+	cd.amountLine = numbers.Zero.Copy()
+	cd.amountUnit = numbers.Zero.Copy()
+	cd.percentual = numbers.Zero.Copy()
 }
 
 // AddDiscount adds a discount to the discounter

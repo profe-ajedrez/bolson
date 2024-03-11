@@ -176,8 +176,8 @@ func (b Bolson) AddDiscount(value decimal.Decimal, mode discount.Mode) error {
 	return b.discountHandler.AddDiscount(value, mode)
 }
 
-func (b Bolson) Untax(taxed decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
-	return b.taxHandler.Untax(taxed, qty)
+func (b Bolson) Untax(taxed decimal.Decimal, qty decimal.Decimal, flow int8) (decimal.Decimal, error) {
+	return b.taxHandler.Untax(taxed, qty, flow)
 }
 
 func (b Bolson) Tax(taxable decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
@@ -189,6 +189,37 @@ func (b Bolson) Discount(unitValue decimal.Decimal, qty decimal.Decimal, maxDisc
 }
 
 func (b Bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+	return b.subCalculate(unitValue, qty, maxDiscount, tax.FromUv)
+}
+
+func (b Bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+
+	fmt.Printf("brute: %s\n", brute)
+
+	undiscounted, err := b.discountHandler.UnDiscount(brute, qty)
+
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("undiscounted: %s\n", undiscounted)
+
+	//fmt.Printf("sub: %s\n", sub)
+
+	untaxedUnitary, err := b.taxHandler.Untax(undiscounted, qty, tax.FromBrute)
+
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("untaxedUnitary: %s\n", untaxedUnitary)
+
+	calc, err = b.subCalculate(untaxedUnitary.Div(qty), qty, numbers.Hundred, tax.FromBrute)
+
+	return
+}
+
+func (b Bolson) subCalculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal, flow int8) (calc Bag, err error) {
 	discounted, discount, err := b.discountHandler.Compute(unitValue, qty, maxDiscount)
 
 	if err != nil {
@@ -209,7 +240,7 @@ func (b Bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDis
 
 	calc = calculate(unitValue, qty, discounted, tax, discount, taxWD)
 
-	calc.WithoutDiscount.UnitValue, err = b.taxHandler.Untax(calc.WithoutDiscount.Brute, qty)
+	calc.WithoutDiscount.UnitValue, err = b.taxHandler.Untax(calc.WithoutDiscount.Brute, qty, flow)
 
 	if err != nil {
 		err = fmt.Errorf("after try to untax brute to recalculate uv %v", err)
@@ -222,29 +253,9 @@ func (b Bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDis
 	return
 }
 
-func (b Bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
-
-	//fmt.Printf("brute: %s\n", brute)
-
-	undiscounted, err := b.discountHandler.UnDiscount(brute, qty)
-
-	if err != nil {
-		return
-	}
-
-	//fmt.Printf("undiscounted: %s\n", undiscounted)
-
-	untaxedUnitary, err := b.taxHandler.Untax(undiscounted, qty)
-
-	if err != nil {
-		return
-	}
-
-	//fmt.Printf("sub: %s\n", sub)
-
-	calc, err = b.Calculate(untaxedUnitary, qty, numbers.Hundred)
-
-	return
+func (b Bolson) Reset() {
+	b.discountHandler.Reset()
+	b.taxHandler.Reset()
 }
 
 func calculate(unitValue decimal.Decimal, qty decimal.Decimal, discounted decimal.Decimal, tax decimal.Decimal, discount decimal.Decimal, taxWD decimal.Decimal) (calc Bag) {
