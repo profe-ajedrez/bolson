@@ -106,6 +106,7 @@ var testBolsonCases = []struct {
 			maxDiscount, _ := decimal.NewFromString("100")
 			unitValue, _ := decimal.NewFromString("100")
 
+
 			calc, err := b.Calculate(unitValue, qty, maxDiscount)
 
 			return calc, err
