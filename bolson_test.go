@@ -2,6 +2,7 @@ package bolson
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/profe-ajedrez/bolson/discount"
@@ -14,184 +15,127 @@ func TestNew(t *testing.T) {
 }
 
 func TestBolson(t *testing.T) {
-	b := New()
 
-	for _, taxCase := range taxCases {
-		_ = b.AddTax(taxCase.value, taxCase.mode, taxCase.stage)
-	}
+	for i, tc := range testBolsonCases {
+		b := New()
+		calc, err := tc.testCase(&b)
 
-	for _, discCase := range discCases {
-		_ = b.AddDiscount(discCase.value, discCase.mode)
-	}
+		js, _ := json.Marshal(calc)
+		strJs := string(js)
+		t.Log(strJs)
 
-	unitValue, _ := decimal.NewFromString("100.0")
-	qty, _ := decimal.NewFromString("10.0")
-	maxDiscount, _ := decimal.NewFromString("100")
+		if err != nil {
+			t.Logf("Fail test case[%d] --- %v", i, err)
+			t.FailNow()
+		}
 
-	result, err := b.Calculate(unitValue, qty, maxDiscount)
+		if strJs != tc.expected {
+			t.Logf("Fail test case[%d] --- expected %v --- got %v", i, tc.expected, strJs)
+			t.FailNow()
+		}
 
-	if err != nil {
-		t.Log(err)
-		t.FailNow()
-	}
-
-	expected := `{"withDiscount":{"net":"879","brute":"1247.492","tax":"368.492","discount":"12.1","discountedValue":"121","discountedValueBrute":"157.058","unitValue":"87.9"},"withoutDiscount":{"net":"1000","brute":"1404.55","tax":"404.55","unitValue":"100"}}`
-
-	js, _ := json.Marshal(result)
-
-	if string(js) != expected {
-		t.Logf("fails! expected %s, got %s", expected, string(js))
-		t.FailNow()
 	}
 }
-
-// func Testbolson2(t *testing.T) {
-// 	b := New()
-
-// 	b.AddTax(decimal.NewFromInt(10), tax.PercentualMode, tax.OverTaxable)
-
-// 	b.AddDiscount(decimal.NewFromInt(10), discount.Percentual)
-
-// 	unitValue, _ := decimal.NewFromString("100.0")
-// 	qty, _ := decimal.NewFromString("10.0")
-// 	maxDiscount, _ := decimal.NewFromString("100")
-
-// 	result, err := b.Calculate(unitValue, qty, maxDiscount)
-
-// 	if err != nil {
-// 		t.Log(err)
-// 		t.FailNow()
-// 	}
-
-// 	js, _ := json.Marshal(result)
-// 	fmt.Println(string(js))
-// }
 
 func BenchmarkBolson(b *testing.B) {
-	bg := New()
 
-	for _, taxCase := range taxCases {
-		_ = bg.AddTax(taxCase.value, taxCase.mode, taxCase.stage)
-	}
-
-	for _, discCase := range discCases {
-		_ = bg.AddDiscount(discCase.value, discCase.mode)
-	}
-
-	unitValue, _ := decimal.NewFromString("100.0")
-	qty, _ := decimal.NewFromString("10.0")
-	maxDiscount, _ := decimal.NewFromString("100")
-
+	bl := New()
 	b.ResetTimer()
+	for i, tc := range testBolsonCases {
+		b.Run(fmt.Sprintf("case %d/%d", i, len(testBolsonCases)), func(b2 *testing.B) {
 
-	for i := 0; i <= b.N; i++ {
-		_, _ = bg.Calculate(unitValue, qty, maxDiscount)
+			for k := 0; k <= b2.N; k++ {
+				_, _ = tc.testCase(&bl)
+				b.StopTimer()
+				bl.Reset()
+				b.StartTimer()
+			}
+		})
 	}
 
 }
 
-var discCases = []struct {
-	value decimal.Decimal
-	mode  discount.Mode
+var testBolsonCases = []struct {
+	testCase func(b *Bolson) (Bag, error)
+	expected string
 }{
 	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("10.0")
-			return d
-		}(),
-		mode: discount.Percentual,
-	},
-	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("2.0")
-			return d
-		}(),
-		mode: discount.AmountUnit,
-	},
-	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("1.0")
-			return d
-		}(),
-		mode: discount.AmountLine,
-	},
-}
+		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("16", tax.PercentualMode, tax.OverTaxable)
+			//_ = b.discountHandler.AddDiscountFromString("10", discount.Percentual)
 
-var taxCases = []struct {
-	value decimal.Decimal
-	mode  tax.Mode
-	stage tax.Stage
-}{
-	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("16.0")
-			return d
-		}(),
-		mode:  tax.PercentualMode,
-		stage: tax.OverTaxable,
+			qty, _ := decimal.NewFromString("4")
+			maxDiscount, _ := decimal.NewFromString("100")
+			brute, _ := decimal.NewFromString("311.684804")
+
+			calc, err := b.CalculateFromBrute(brute, qty, maxDiscount)
+
+			if err != nil {
+				return calc, err
+			}
+
+			return calc, err
+		},
+		expected: `{"withDiscount":{"net":"268.693796551724138","brute":"311.68480400000000008","tax":"42.99100744827586208","discount":"0","discountedValue":"0","discountedValueBrute":"0","unitValue":"67.1734491379310345"},"withoutDiscount":{"net":"268.693796551724138","brute":"311.68480400000000008","tax":"42.99100744827586208","unitValue":"67.1734491379310345"}}`,
 	},
 	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("5")
-			return d
-		}(),
-		mode:  tax.AmountUnitMode,
-		stage: tax.OverTaxable,
+		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("10", tax.PercentualMode, tax.OverTaxable)
+			//_ = b.discountHandler.AddDiscountFromString("10", discount.Percentual)
+
+			qty, _ := decimal.NewFromString("10")
+			maxDiscount, _ := decimal.NewFromString("100")
+			brute, _ := decimal.NewFromString("1100")
+
+			calc, err := b.CalculateFromBrute(brute, qty, maxDiscount)
+
+			if err != nil {
+				return calc, err
+			}
+
+			return calc, err
+		},
+		expected: `{"withDiscount":{"net":"637.9310344827586222","brute":"740.000000000000001756274132676085568","tax":"102.068965517241379556274132676085568","discount":"30.1885553573578","discountedValue":"275.8604473412657312","discountedValueBrute":"319.998118915868248187725867323914432","unitValue":"637.9310344827586222"},"withoutDiscount":{"net":"913.7914818240243534","brute":"1059.998118915868249944","tax":"146.206637091843896544","unitValue":"913.7914818240243534"}}`,
 	},
 	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("1")
-			return d
-		}(),
-		mode:  tax.AmountLineMode,
-		stage: tax.OverTaxable,
+		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("20", tax.PercentualMode, tax.OverTaxable)
+			_ = b.discountHandler.AddDiscountFromString("10", discount.Percentual)
+
+			qty, _ := decimal.NewFromString("10.0")
+			maxDiscount, _ := decimal.NewFromString("100")
+			unitValue, _ := decimal.NewFromString("100")
+
+			calc, err := b.Calculate(unitValue, qty, maxDiscount)
+
+			return calc, err
+		},
+		expected: `{"withDiscount":{"net":"900","brute":"1080","tax":"180","discount":"10","discountedValue":"100","discountedValueBrute":"120","unitValue":"90"},"withoutDiscount":{"net":"1000","brute":"1200","tax":"200","unitValue":"100"}}`,
 	},
 	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("5")
-			return d
-		}(),
-		mode:  tax.PercentualMode,
-		stage: tax.OverTax,
+		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("16", tax.PercentualMode, tax.OverTaxable)
+			_ = b.discountHandler.AddDiscountFromString("30.1885553573578", discount.Percentual)
+
+			unitValue, _ := decimal.NewFromString("913.793103448276")
+			qty, _ := decimal.NewFromString("1.0")
+			maxDiscount, _ := decimal.NewFromString("100")
+
+			return b.Calculate(unitValue, qty, maxDiscount)
+		},
+		expected: `{"withDiscount":{"net":"637.9321665620753722","brute":"740.00131321200743174459467975552","tax":"102.06914664993205954459467975552","discount":"30.1885553573578","discountedValue":"275.8609368862006278","discountedValueBrute":"319.99868678799272825540532024448","unitValue":"637.9321665620753722"},"withoutDiscount":{"net":"913.793103448276","brute":"1060.00000000000016","tax":"146.20689655172416","unitValue":"913.793103448276"}}`,
 	},
 	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("2")
-			return d
-		}(),
-		mode:  tax.AmountUnitMode,
-		stage: tax.OverTax,
-	},
-	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("1")
-			return d
-		}(),
-		mode:  tax.AmountLineMode,
-		stage: tax.OverTax,
-	},
-	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("8")
-			return d
-		}(),
-		mode:  tax.PercentualMode,
-		stage: tax.OverTaxIgnorable,
-	},
-	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("3")
-			return d
-		}(),
-		mode:  tax.AmountUnitMode,
-		stage: tax.OverTaxIgnorable,
-	},
-	{
-		value: func() decimal.Decimal {
-			d, _ := decimal.NewFromString("2")
-			return d
-		}(),
-		mode:  tax.AmountLineMode,
-		stage: tax.OverTaxIgnorable,
+		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("16", tax.PercentualMode, tax.OverTaxable)
+			_ = b.discountHandler.AddDiscountFromString("30.1885553573578", discount.Percentual)
+
+			qty, _ := decimal.NewFromString("1.0")
+			maxDiscount, _ := decimal.NewFromString("100")
+			brute, _ := decimal.NewFromString("740")
+
+			return b.CalculateFromBrute(brute, qty, maxDiscount)
+		},
+		expected: `{"withDiscount":{"net":"637.9310344827586222","brute":"740.000000000000001756274132676085568","tax":"102.068965517241379556274132676085568","discount":"30.1885553573578","discountedValue":"275.8604473412657312","discountedValueBrute":"319.998118915868248187725867323914432","unitValue":"637.9310344827586222"},"withoutDiscount":{"net":"913.7914818240243534","brute":"1059.998118915868249944","tax":"146.206637091843896544","unitValue":"913.7914818240243534"}}`,
 	},
 }

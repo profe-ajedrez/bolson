@@ -1,7 +1,6 @@
 package tax
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/shopspring/decimal"
@@ -149,19 +148,19 @@ func TestTaxHandler(t *testing.T) {
 		t.FailNow()
 	}
 
-	fmt.Println(taxable.Mul(qty).Add(taxes))
+	//fmt.Println(taxable.Mul(qty).Add(taxes))
 
 	originalTaxable, err := h.Untax(func() decimal.Decimal {
 		d, _ := decimal.NewFromString("1289.31")
 		return d
-	}(), qty)
+	}(), qty, FromUv)
 
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
 	}
 
-	fmt.Println(originalTaxable)
+	//fmt.Println(originalTaxable)
 
 	expected = "100"
 

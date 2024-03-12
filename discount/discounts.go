@@ -97,6 +97,8 @@ type DiscountComputer interface {
 	UnDiscountFromString(string, string) (decimal.Decimal, error)
 
 	Ratio(decimal.Decimal, decimal.Decimal) decimal.Decimal
+
+	Reset()
 }
 
 var _ DiscountComputer = &ComputedDiscount{}
@@ -115,6 +117,12 @@ func NewComputedDiscount() *ComputedDiscount {
 		amountLine: decimal.Zero.Copy(),
 		amountUnit: decimal.Zero.Copy(),
 	}
+}
+
+func (cd *ComputedDiscount) Reset() {
+	cd.amountLine = numbers.Zero.Copy()
+	cd.amountUnit = numbers.Zero.Copy()
+	cd.percentual = numbers.Zero.Copy()
 }
 
 // AddDiscount adds a discount to the discounter
@@ -224,6 +232,8 @@ func (*ComputedDiscount) Ratio(discounted decimal.Decimal, discount decimal.Deci
 func (cd *ComputedDiscount) UnDiscount(discounted decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
 	original := discounted.Add(cd.amountLine)
 
+	//fmt.Printf("original: %s\n", original)
+
 	if original.IsNegative() {
 		return numbers.Zero.Copy(),
 			ErrNegativeDiscountable(
@@ -237,6 +247,7 @@ func (cd *ComputedDiscount) UnDiscount(discounted decimal.Decimal, qty decimal.D
 	}
 
 	original = original.Add(cd.amountUnit.Mul(qty))
+	//fmt.Printf("original + amount unit * qty: %s\n", original)
 
 	if original.IsNegative() {
 		return numbers.Zero.Copy(),
@@ -251,12 +262,10 @@ func (cd *ComputedDiscount) UnDiscount(discounted decimal.Decimal, qty decimal.D
 			)
 	}
 
-	original = original.Div(
-		numbers.Hundred.Sub(
-			cd.percentual).Mul(
-			numbers.Hundred,
-		),
-	).Mul(qty)
+	//fmt.Printf("cd.percentual %v\n", cd.percentual)
+	original = original.Div((numbers.Hundred.Sub(cd.percentual))).Mul(numbers.Hundred)
+
+	//fmt.Printf("original + percent: %s\n", original)
 
 	return original, nil
 }

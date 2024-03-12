@@ -48,6 +48,18 @@ func (c WithDiscountValues) String() string {
 	}`, c.Net, c.Brute, c.Tax, c.Discount, c.DiscountedValue, c.DiscountedValueBrute, c.UnitValue)
 }
 
+func (c WithDiscountValues) Round(scale int32) WithDiscountValues {
+	return WithDiscountValues{
+		Net:                  c.Net.Round(scale),
+		Brute:                c.Brute.Round(scale),
+		Tax:                  c.Tax.Round(scale),
+		Discount:             c.Discount.Round(scale),
+		DiscountedValue:      c.DiscountedValue.Round(scale),
+		DiscountedValueBrute: c.DiscountedValueBrute.Round(scale),
+		UnitValue:            c.UnitValue.Round(scale),
+	}
+}
+
 // WithoutDiscountValues represents the result of operations over sales values without applied discounts
 // as if no discounts were registered.
 type WithoutDiscountValues struct {
@@ -73,6 +85,15 @@ func (c WithoutDiscountValues) String() string {
 	}`, c.Net, c.Brute, c.Tax, c.UnitValue)
 }
 
+func (c WithoutDiscountValues) Round(scale int32) WithoutDiscountValues {
+	return WithoutDiscountValues{
+		Net:       c.Net.Round(scale),
+		Brute:     c.Brute.Round(scale),
+		Tax:       c.Tax.Round(scale),
+		UnitValue: c.UnitValue.Round(scale),
+	}
+}
+
 // Bag is used to contain the result of calculations
 type Bag struct {
 	// WithDiscount contains the obtained values with discount
@@ -89,15 +110,22 @@ func (b Bag) String() string {
 }`, b.WithDiscount.String(), b.WithoutDiscount.String())
 }
 
-// bolson is the handler provided to perform the sales operations over sales values
+func (b Bag) Round(scale int32) Bag {
+	return Bag{
+		WithDiscount:    b.WithDiscount.Round(scale),
+		WithoutDiscount: b.WithoutDiscount.Round(scale),
+	}
+}
+
+// Bolson is the handler provided to perform the sales operations over sales values
 //
-// Internally bolson has a handler for taxes and a handler for discounts which
+// Internally Bolson has a handler for taxes and a handler for discounts which
 // performs operations and calculations over these concepts.
 //
-// bolson can register different types of taxes and discount and is able to
+// Bolson can register different types of taxes and discount and is able to
 // calculate them correctly.
 //
-// bolson uses the concept of stages to the taxes registry and calculations,
+// Bolson uses the concept of stages to the taxes registry and calculations,
 // where  a tax can be registered in a particular stage which determines when is calculated.
 //
 // The taxes stages are:
@@ -108,7 +136,7 @@ func (b Bag) String() string {
 //
 // * OverTaxesIgnorableStage represents taxes which are calculated like the taxes of the OverTaxableStage, but are not included in the OVerTaxesStage
 //
-//	 b := bolson.New()
+//	 b := Bolson.New()
 //
 //	 // adds a percentual tax to the Overtaxable stage
 //	 err  := b.AddTax(decimal.NewFromInt(10), tax.PercentualMode, tax.OverTaxableStage)
@@ -116,27 +144,82 @@ func (b Bag) String() string {
 //	 if err != nil {
 //		    panic(err) // Remember! Dont Panic!
 //	 }
-type bolson struct {
+type Bolson struct {
 	taxHandler      *tax.Handler
 	discountHandler *discount.ComputedDiscount
 }
 
-func New() bolson {
-	return bolson{
+func New() Bolson {
+	return Bolson{
 		taxHandler:      tax.NewHandler(),
 		discountHandler: discount.NewComputedDiscount(),
 	}
 }
 
-func (b bolson) AddTax(value decimal.Decimal, mode tax.Mode, stage tax.Stage) error {
+func (b Bolson) OverTaxables() *tax.TaxStage {
+	return b.taxHandler.OverTaxables
+}
+
+func (b Bolson) OverTaxes() *tax.TaxStage {
+	return b.taxHandler.OverTaxes
+}
+
+func (b Bolson) OverTaxIgnorables() *tax.TaxStage {
+	return b.taxHandler.OverTaxIgnorables
+}
+
+func (b Bolson) AddTax(value decimal.Decimal, mode tax.Mode, stage tax.Stage) error {
 	return b.taxHandler.AddTax(value, mode, stage)
 }
 
-func (b bolson) AddDiscount(value decimal.Decimal, mode discount.Mode) error {
+func (b Bolson) AddDiscount(value decimal.Decimal, mode discount.Mode) error {
 	return b.discountHandler.AddDiscount(value, mode)
 }
 
-func (b bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+func (b Bolson) Untax(taxed decimal.Decimal, qty decimal.Decimal, flow int8) (decimal.Decimal, error) {
+	return b.taxHandler.Untax(taxed, qty, flow)
+}
+
+func (b Bolson) Tax(taxable decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
+	return b.taxHandler.Tax(taxable, qty)
+}
+
+func (b Bolson) Discount(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (decimal.Decimal, decimal.Decimal, error) {
+	return b.discountHandler.Compute(unitValue, qty, maxDiscount)
+}
+
+func (b Bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+	return b.subCalculate(unitValue, qty, maxDiscount, tax.FromUv)
+}
+
+func (b Bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+
+	fmt.Printf("brute: %s\n", brute)
+
+	undiscounted, err := b.discountHandler.UnDiscount(brute, qty)
+
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("undiscounted: %s\n", undiscounted)
+
+	//fmt.Printf("sub: %s\n", sub)
+
+	untaxedUnitary, err := b.taxHandler.Untax(undiscounted, qty, tax.FromBrute)
+
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("untaxedUnitary: %s\n", untaxedUnitary)
+
+	calc, err = b.subCalculate(untaxedUnitary.Div(qty), qty, numbers.Hundred, tax.FromBrute)
+
+	return
+}
+
+func (b Bolson) subCalculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal, flow int8) (calc Bag, err error) {
 	discounted, discount, err := b.discountHandler.Compute(unitValue, qty, maxDiscount)
 
 	if err != nil {
@@ -157,7 +240,7 @@ func (b bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDis
 
 	calc = calculate(unitValue, qty, discounted, tax, discount, taxWD)
 
-	calc.WithoutDiscount.UnitValue, err = b.taxHandler.Untax(calc.WithoutDiscount.Brute, qty)
+	calc.WithoutDiscount.UnitValue, err = b.taxHandler.Untax(calc.WithoutDiscount.Brute, qty, flow)
 
 	if err != nil {
 		err = fmt.Errorf("after try to untax brute to recalculate uv %v", err)
@@ -165,26 +248,14 @@ func (b bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDis
 	}
 
 	calc.WithDiscount.UnitValue = calc.WithDiscount.Net.Div(qty)
+	calc.WithoutDiscount.UnitValue = calc.WithoutDiscount.Net.Div(qty)
 
 	return
 }
 
-func (b bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
-	unit_value_wd, err := b.taxHandler.Untax(brute, qty)
-
-	if err != nil {
-		return
-	}
-
-	unit_value, err := b.discountHandler.UnDiscount(unit_value_wd, qty)
-
-	if err != nil {
-		return
-	}
-
-	calc, err = b.Calculate(unit_value, qty, maxDiscount)
-
-	return
+func (b Bolson) Reset() {
+	b.discountHandler.Reset()
+	b.taxHandler.Reset()
 }
 
 func calculate(unitValue decimal.Decimal, qty decimal.Decimal, discounted decimal.Decimal, tax decimal.Decimal, discount decimal.Decimal, taxWD decimal.Decimal) (calc Bag) {
