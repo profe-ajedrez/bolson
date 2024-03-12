@@ -61,6 +61,25 @@ var testBolsonCases = []struct {
 }{
 	{
 		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("16", tax.PercentualMode, tax.OverTaxable)
+			//_ = b.discountHandler.AddDiscountFromString("10", discount.Percentual)
+
+			qty, _ := decimal.NewFromString("4")
+			maxDiscount, _ := decimal.NewFromString("100")
+			brute, _ := decimal.NewFromString("311.684804")
+
+			calc, err := b.CalculateFromBrute(brute, qty, maxDiscount)
+
+			if err != nil {
+				return calc, err
+			}
+
+			return calc, err
+		},
+		expected: `{"withDiscount":{"net":"268.693796551724138","brute":"311.68480400000000008","tax":"42.99100744827586208","discount":"0","discountedValue":"0","discountedValueBrute":"0","unitValue":"67.1734491379310345"},"withoutDiscount":{"net":"268.693796551724138","brute":"311.68480400000000008","tax":"42.99100744827586208","unitValue":"67.1734491379310345"}}`,
+	},
+	{
+		testCase: func(b *Bolson) (Bag, error) {
 			_ = b.taxHandler.AddTaxFromString("10", tax.PercentualMode, tax.OverTaxable)
 			//_ = b.discountHandler.AddDiscountFromString("10", discount.Percentual)
 
@@ -86,6 +105,7 @@ var testBolsonCases = []struct {
 			qty, _ := decimal.NewFromString("10.0")
 			maxDiscount, _ := decimal.NewFromString("100")
 			unitValue, _ := decimal.NewFromString("100")
+
 
 			calc, err := b.Calculate(unitValue, qty, maxDiscount)
 
