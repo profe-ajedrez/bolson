@@ -62,6 +62,26 @@ var testBolsonCases = []struct {
 	{
 		testCase: func(b *Bolson) (Bag, error) {
 			_ = b.taxHandler.AddTaxFromString("16", tax.PercentualMode, tax.OverTaxable)
+
+			qty, _ := decimal.NewFromString("1")
+			maxDiscount, _ := decimal.NewFromString("100")
+			bruteWD, _ := decimal.NewFromString("1059.999999")
+
+			_ = b.discountHandler.AddDiscountFromString("30.0", discount.Percentual)
+
+			calc, err := b.CalculateFromBruteWD(bruteWD, qty, maxDiscount)
+
+			if err != nil {
+				return calc, err
+			}
+
+			return calc, err
+		},
+		expected: `{"withDiscount":{"net":"639.6551718103448276","brute":"741.9999993000000000192","tax":"102.3448274896551724192","discount":"30","discountedValue":"274.137930775862069","discountedValueBrute":"317.9999997000000000368","unitValue":"639.6551718103448276"},"withoutDiscount":{"net":"913.7931025862068966","brute":"1059.999999000000000056","tax":"146.206896413793103456","unitValue":"913.7931025862068966"}}`,
+	},
+	{
+		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("16", tax.PercentualMode, tax.OverTaxable)
 			//_ = b.discountHandler.AddDiscountFromString("10", discount.Percentual)
 
 			qty, _ := decimal.NewFromString("4")
@@ -95,7 +115,7 @@ var testBolsonCases = []struct {
 
 			return calc, err
 		},
-		expected: `{"withDiscount":{"net":"637.9310344827586222","brute":"740.000000000000001756274132676085568","tax":"102.068965517241379556274132676085568","discount":"30.1885553573578","discountedValue":"275.8604473412657312","discountedValueBrute":"319.998118915868248187725867323914432","unitValue":"637.9310344827586222"},"withoutDiscount":{"net":"913.7914818240243534","brute":"1059.998118915868249944","tax":"146.206637091843896544","unitValue":"913.7914818240243534"}}`,
+		expected: `{"withDiscount":{"net":"1000","brute":"1100","tax":"100","discount":"0","discountedValue":"0","discountedValueBrute":"0","unitValue":"100"},"withoutDiscount":{"net":"1000","brute":"1100","tax":"100","unitValue":"100"}}`,
 	},
 	{
 		testCase: func(b *Bolson) (Bag, error) {
@@ -105,7 +125,6 @@ var testBolsonCases = []struct {
 			qty, _ := decimal.NewFromString("10.0")
 			maxDiscount, _ := decimal.NewFromString("100")
 			unitValue, _ := decimal.NewFromString("100")
-
 
 			calc, err := b.Calculate(unitValue, qty, maxDiscount)
 

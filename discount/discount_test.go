@@ -17,12 +17,12 @@ import (
 // 	d2 := decimal.NewFromFloat(f2)
 // 	fmt.Println(d2)
 
-// 	fmt.Printf("f1 + f2 = %f + %f = %.18f\n", f1, f2, f1+f2)
-// 	fmt.Printf("d1 + d2 = %v + %v = %v\n", d1, d2, d1.Add(d2))
+// 	//fmt.Printf("f1 + f2 = %f + %f = %.18f\n", f1, f2, f1+f2)
+// 	//fmt.Printf("d1 + d2 = %v + %v = %v\n", d1, d2, d1.Add(d2))
 
 // 	f3 := 0.3
 
-// 	fmt.Printf("f3 = %f,  real f3 = %.24f3", f3, f3)
+// 	//fmt.Printf("f3 = %f,  real f3 = %.24f3", f3, f3)
 
 // }
 
