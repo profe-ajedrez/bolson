@@ -192,6 +192,37 @@ func (b Bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDis
 	return b.subCalculate(unitValue, qty, maxDiscount, tax.FromUv)
 }
 
+func (b Bolson) CalculateFromBruteWD(bruteWD decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
+
+	fmt.Printf("brute: %s\n", bruteWD)
+
+	//fmt.Printf("sub: %s\n", sub)
+
+	untaxedWD, err := b.taxHandler.Untax(bruteWD, qty, tax.FromBrute)
+
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("untaxedWD: %s\n", untaxedWD)
+
+	untaxedUnit := untaxedWD.Div(qty)
+
+	fmt.Printf("untaxedUnitary: %s\n", untaxedUnit)
+
+	discounted, _, err := b.discountHandler.Compute(untaxedUnit, qty, maxDiscount)
+
+	if err != nil {
+		return
+	}
+
+	unitValue := untaxedUnit.Sub(discounted)
+
+	calc, err = b.subCalculate(unitValue, qty, numbers.Hundred, tax.FromBrute)
+
+	return
+}
+
 func (b Bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
 
 	fmt.Printf("brute: %s\n", brute)
