@@ -194,7 +194,7 @@ func (b Bolson) Calculate(unitValue decimal.Decimal, qty decimal.Decimal, maxDis
 
 func (b Bolson) CalculateFromBruteWD(bruteWD decimal.Decimal, qty decimal.Decimal, maxDiscount decimal.Decimal) (calc Bag, err error) {
 
-	discounted, _, err := b.discountHandler.Compute(bruteWD, qty, maxDiscount)
+	discounted, _, err := b.discountHandler.Compute(bruteWD.Div(qty), qty, maxDiscount)
 
 	if err != nil {
 		return
