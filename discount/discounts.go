@@ -91,10 +91,10 @@ type DiscountComputer interface {
 	ComputeFromString(string, string, string) (decimal.Decimal, decimal.Decimal, error)
 	Compute(decimal.Decimal, decimal.Decimal, decimal.Decimal) (decimal.Decimal, decimal.Decimal, error)
 
-	UnDiscount(decimal.Decimal, decimal.Decimal) (decimal.Decimal, error)
-	UnDiscountFromFloat64(float64, float64) (decimal.Decimal, error)
-	UnDiscountFromFloat32(float32, float32) (decimal.Decimal, error)
-	UnDiscountFromString(string, string) (decimal.Decimal, error)
+	UnDiscount(decimal.Decimal, decimal.Decimal, decimal.Decimal) (decimal.Decimal, error)
+	UnDiscountFromFloat64(float64, float64, float64) (decimal.Decimal, error)
+	UnDiscountFromFloat32(float32, float32, float32) (decimal.Decimal, error)
+	UnDiscountFromString(string, string, string) (decimal.Decimal, error)
 
 	Ratio(decimal.Decimal, decimal.Decimal) decimal.Decimal
 
@@ -235,7 +235,7 @@ func (*ComputedDiscount) Ratio(discounted decimal.Decimal, discount decimal.Deci
 // UnDiscount returns the original discountable value. The value to which the registered discounts where applied
 //
 // If somewhere in the un discount process a negative value is detected, a zero decimal value and the error will be returned
-func (cd *ComputedDiscount) UnDiscount(discounted decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
+func (cd *ComputedDiscount) UnDiscount(discounted, originalUndiscounted decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
 	original := discounted.Add(cd.amountLine)
 
 	if original.IsNegative() {
@@ -267,31 +267,35 @@ func (cd *ComputedDiscount) UnDiscount(discounted decimal.Decimal, qty decimal.D
 
 	if !cd.percentual.Equal(numbers.Hundred) {
 		original = original.Div((numbers.Hundred.Sub(cd.percentual))).Mul(numbers.Hundred)
+	} else {
+		original = originalUndiscounted.Copy()
 	}
 
 	return original, nil
 }
 
 // UnDiscountFromFloat32 returns the original float32 discountable value. The value to which the registered discounts where applied
-func (cd *ComputedDiscount) UnDiscountFromFloat32(discounted float32, qty float32) (decimal.Decimal, error) {
+func (cd *ComputedDiscount) UnDiscountFromFloat32(discounted float32, originalUndiscounted float32, qty float32) (decimal.Decimal, error) {
 	discted := decimal.NewFromFloat32(discounted)
+	origUndisc := decimal.NewFromFloat32(originalUndiscounted)
 	qtydec := decimal.NewFromFloat32(qty)
 
-	return cd.UnDiscount(discted, qtydec)
+	return cd.UnDiscount(discted, origUndisc, qtydec)
 }
 
 // UnDiscountFromFloat64 returns the original float64 discountable value. The value to which the registered discounts where applied
-func (cd *ComputedDiscount) UnDiscountFromFloat64(discounted float64, qty float64) (decimal.Decimal, error) {
+func (cd *ComputedDiscount) UnDiscountFromFloat64(discounted, originalUndiscounted float64, qty float64) (decimal.Decimal, error) {
 	discted := decimal.NewFromFloat(discounted)
+	origUndisc := decimal.NewFromFloat(originalUndiscounted)
 	qtydec := decimal.NewFromFloat(qty)
 
-	return cd.UnDiscount(discted, qtydec)
+	return cd.UnDiscount(discted, origUndisc, qtydec)
 }
 
 // UnDiscountFromString returns the original string discountable value. The value to which the registered discounts where applied
 //
 // When there were errors at converting strings to decimal values a zero decimal value and the error will be returned
-func (cd *ComputedDiscount) UnDiscountFromString(discounted string, qty string) (decimal.Decimal, error) {
+func (cd *ComputedDiscount) UnDiscountFromString(discounted, originalUndiscounted string, qty string) (decimal.Decimal, error) {
 	discted, err := decimal.NewFromString(discounted)
 
 	if err != nil {
@@ -301,6 +305,20 @@ func (cd *ComputedDiscount) UnDiscountFromString(discounted string, qty string) 
 					`when [un_discounting_from_string] converting string discounted to decimal. 
 					discounted: %v quantity: %v`,
 					discounted,
+					qty,
+				),
+			)
+	}
+
+	origUndisc, err := decimal.NewFromString(originalUndiscounted)
+
+	if err != nil {
+		return numbers.Zero.Copy(),
+			ErrInvalidDecimal(
+				fmt.Sprintf(
+					`when [un_discounting_from_string] converting string original undiscounted to decimal. 
+					discounted: %v quantity: %v`,
+					origUndisc,
 					qty,
 				),
 			)
@@ -320,5 +338,5 @@ func (cd *ComputedDiscount) UnDiscountFromString(discounted string, qty string) 
 			)
 	}
 
-	return cd.UnDiscount(discted, qtydec)
+	return cd.UnDiscount(discted, origUndisc, qtydec)
 }

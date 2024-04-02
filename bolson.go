@@ -12,6 +12,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const (
+	bruteWDIndex = 0
+)
+
 // WithDiscountValues represents the result of operations over sales values with applied discounts
 type WithDiscountValues struct {
 	// Net is the operation subtotal value without taxes
@@ -147,12 +151,14 @@ func (b Bag) Round(scale int32) Bag {
 type Bolson struct {
 	taxHandler      *tax.Handler
 	discountHandler *discount.ComputedDiscount
+	buffer          []decimal.Decimal
 }
 
 func New() Bolson {
 	return Bolson{
 		taxHandler:      tax.NewHandler(),
 		discountHandler: discount.NewComputedDiscount(),
+		buffer:          make([]decimal.Decimal, 1),
 	}
 }
 
@@ -201,6 +207,7 @@ func (b Bolson) CalculateFromBruteWD(bruteWD decimal.Decimal, qty decimal.Decima
 	}
 
 	brute := bruteWD.Sub(discounted)
+	b.buffer[bruteWDIndex] = bruteWD
 
 	calc, err = b.CalculateFromBrute(brute, qty, numbers.Hundred)
 
@@ -211,7 +218,7 @@ func (b Bolson) CalculateFromBrute(brute decimal.Decimal, qty decimal.Decimal, m
 
 	//fmt.Printf("brute: %s\n", brute)
 
-	undiscounted, err := b.discountHandler.UnDiscount(brute, qty)
+	undiscounted, err := b.discountHandler.UnDiscount(brute, b.buffer[bruteWDIndex], qty)
 
 	if err != nil {
 		return
