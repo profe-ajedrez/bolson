@@ -197,27 +197,27 @@ func BenchmarkTaxStageRegistryTaxes(b *testing.B) {
 func BenchmarkTaxHandlerTax(b *testing.B) {
 	handler := NewHandler()
 
-	_ = handler.AddTaxFromFloat(10.32, AmountLineMode, OverTaxable)
+	_ = handler.AddTaxFromFloat64(10.32, AmountLineMode, OverTaxable)
 
-	_ = handler.AddTaxFromFloat(11.35, AmountUnitMode, OverTaxable)
+	_ = handler.AddTaxFromFloat64(11.35, AmountUnitMode, OverTaxable)
 
 	_ = handler.AddTax(func() decimal.Decimal {
 		d, _ := decimal.NewFromString("16.092732673726362323232")
 		return d
 	}(), PercentualMode, OverTaxable)
 
-	_ = handler.AddTaxFromFloat(10.32, AmountLineMode, OverTax)
+	_ = handler.AddTaxFromFloat64(10.32, AmountLineMode, OverTax)
 
-	_ = handler.AddTaxFromFloat(11.35, AmountUnitMode, OverTax)
+	_ = handler.AddTaxFromFloat64(11.35, AmountUnitMode, OverTax)
 
 	_ = handler.AddTax(func() decimal.Decimal {
 		d, _ := decimal.NewFromString("16.092732673726362323232")
 		return d
 	}(), PercentualMode, OverTax)
 
-	_ = handler.AddTaxFromFloat(10.32, AmountLineMode, OverTaxIgnorable)
+	_ = handler.AddTaxFromFloat64(10.32, AmountLineMode, OverTaxIgnorable)
 
-	_ = handler.AddTaxFromFloat(11.35, AmountUnitMode, OverTaxIgnorable)
+	_ = handler.AddTaxFromFloat64(11.35, AmountUnitMode, OverTaxIgnorable)
 
 	_ = handler.AddTax(func() decimal.Decimal {
 		d, _ := decimal.NewFromString("16.092732673726362323232")

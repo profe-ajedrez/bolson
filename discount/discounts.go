@@ -183,7 +183,13 @@ func (cd *ComputedDiscount) Compute(uv decimal.Decimal, qty decimal.Decimal, max
 		return numbers.Zero.Copy(), numbers.Zero.Copy(), ErrOverMaxDiscount(fmt.Sprintf("discount: %v  max discount: %v", discounted, maxDiscount))
 	}
 
-	discount := discounted.Mul(numbers.Hundred).Div(uv.Mul(qty))
+	var discount decimal.Decimal
+
+	if uv.Equal(numbers.Zero) {
+		discount = numbers.Hundred.Copy() // discounted.Mul(numbers.Hundred).Div(uv.Mul(qty))
+	} else {
+		discount = discounted.Mul(numbers.Hundred).Div(uv.Mul(qty))
+	}
 
 	return discounted, discount, nil
 }
@@ -232,8 +238,6 @@ func (*ComputedDiscount) Ratio(discounted decimal.Decimal, discount decimal.Deci
 func (cd *ComputedDiscount) UnDiscount(discounted decimal.Decimal, qty decimal.Decimal) (decimal.Decimal, error) {
 	original := discounted.Add(cd.amountLine)
 
-	//fmt.Printf("original: %s\n", original)
-
 	if original.IsNegative() {
 		return numbers.Zero.Copy(),
 			ErrNegativeDiscountable(
@@ -247,7 +251,6 @@ func (cd *ComputedDiscount) UnDiscount(discounted decimal.Decimal, qty decimal.D
 	}
 
 	original = original.Add(cd.amountUnit.Mul(qty))
-	//fmt.Printf("original + amount unit * qty: %s\n", original)
 
 	if original.IsNegative() {
 		return numbers.Zero.Copy(),
@@ -262,10 +265,9 @@ func (cd *ComputedDiscount) UnDiscount(discounted decimal.Decimal, qty decimal.D
 			)
 	}
 
-	//fmt.Printf("cd.percentual %v\n", cd.percentual)
-	original = original.Div((numbers.Hundred.Sub(cd.percentual))).Mul(numbers.Hundred)
-
-	//fmt.Printf("original + percent: %s\n", original)
+	if !cd.percentual.Equal(numbers.Hundred) {
+		original = original.Div((numbers.Hundred.Sub(cd.percentual))).Mul(numbers.Hundred)
+	}
 
 	return original, nil
 }

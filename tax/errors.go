@@ -1,3 +1,4 @@
+// Package tax proporciona funcionalidades relacionadas con el cálculo de impuestos en transacciones financieras.
 package tax
 
 import "fmt"

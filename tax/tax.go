@@ -498,7 +498,7 @@ func (h *Handler) AddTaxFromFloat32(value float32, mode Mode, stage Stage) error
 	return ErrInvalidTaxStage(stage)
 }
 
-func (h *Handler) AddTaxFromFloat(value float64, mode Mode, stage Stage) error {
+func (h *Handler) AddTaxFromFloat64(value float64, mode Mode, stage Stage) error {
 	switch stage {
 	case OverTaxable:
 		switch mode {

@@ -61,6 +61,26 @@ var testBolsonCases = []struct {
 }{
 	{
 		testCase: func(b *Bolson) (Bag, error) {
+			_ = b.taxHandler.AddTaxFromString("19", tax.PercentualMode, tax.OverTaxable)
+
+			qty, _ := decimal.NewFromString("1")
+			maxDiscount, _ := decimal.NewFromString("100")
+			uv, _ := decimal.NewFromString("42008.403361")
+
+			_ = b.discountHandler.AddDiscountFromString("26.005201", discount.Percentual)
+
+			calc, err := b.Calculate(uv, qty, maxDiscount)
+
+			if err != nil {
+				return calc, err
+			}
+
+			return calc, err
+		},
+		expected: `{"withDiscount":{"net":"31084.03363008119439","brute":"36990.0000197966213241","tax":"5905.9663897154269341","discount":"26.005201","discountedValue":"10924.36973091880561","discountedValueBrute":"12999.9999797933786759","unitValue":"31084.03363008119439"},"withoutDiscount":{"net":"42008.403361","brute":"49989.99999959","tax":"7981.59663859","unitValue":"42008.403361"}}`,
+	},
+	{
+		testCase: func(b *Bolson) (Bag, error) {
 			_ = b.taxHandler.AddTaxFromString("16", tax.PercentualMode, tax.OverTaxable)
 
 			qty, _ := decimal.NewFromString("2")
@@ -77,7 +97,7 @@ var testBolsonCases = []struct {
 
 			return calc, err
 		},
-		expected: `{"withDiscount":{"net":"365.517241034482757","brute":"423.9999995999999981104","tax":"58.4827585655172411104","discount":"30","discountedValue":"156.6502461576354672","discountedValueBrute":"181.7142855428571419616","unitValue":"182.7586205172413785"},"withoutDiscount":{"net":"522.1674871921182242","brute":"605.714285142857140072","tax":"83.546797950738915872","unitValue":"261.0837435960591121"}}`,
+		expected: `{"withDiscount":{"net":"1279.3103436206896552","brute":"1483.9999986000000000384","tax":"204.6896549793103448384","discount":"30","discountedValue":"548.275861551724138","discountedValueBrute":"635.9999994000000000736","unitValue":"639.6551718103448276"},"withoutDiscount":{"net":"1827.5862051724137932","brute":"2119.999998000000000112","tax":"292.413792827586206912","unitValue":"913.7931025862068966"}}`,
 	},
 	{
 		testCase: func(b *Bolson) (Bag, error) {
